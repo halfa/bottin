@@ -5,7 +5,7 @@ import ssha from './ssha.mjs'
 import config from './config.json'
 
 // @FIXME: Need to check if a DN can contains a /. If yes, we are in trouble with consul.
-// @FIXME: Rewrite with Promises + async 
+// @FIXME: Rewrite with Promises + async
 // @FIXME: Warning crypto functions are deprecated
 // @FIXME: Error are probably too verbose
 // @FIXME: Add an initial prefix to the consul key value
@@ -37,7 +37,7 @@ const consul_to_dn = entry => {
     const dn = exploded_key.reverse().join(',')
     return {dn: dn, attribute: null, value: null}
   }
-  
+
   const dn = exploded_key.slice(0,-1).reverse().join(',')
   const attribute = last_element[1]
   return {dn: dn, attribute: attribute, value: entry.Value}
@@ -62,7 +62,7 @@ const extract_memberof_from_filter = filter => {
   let res = []
   if (filter.attribute && filter.attribute == "memberof")
     res.push(filter.value)
-  
+
   if (filter.filters)
     res = res.concat(filter.filters.reduce((acc, cur) => acc.concat(extract_memberof_from_filter(cur)), []))
 
@@ -94,7 +94,7 @@ const fetch_membership = (memberof_to_load, cb) => {
 
       remaining_requests--
       if (remaining_requests === 0) cb(error_list.length === 0 ? null : error_list, membership)
-    })           
+    })
   })
   if (memberof_to_load.length === 0)
     cb(null, [])
@@ -139,13 +139,13 @@ const authorize = (req, res, next) => {
 
     const user_perm = JSON.parse(key.Value)
     const is_search = (req instanceof ldap.SearchRequest)
-    
+
     if (is_search && user_perm.includes("read"))
       return next()
 
     if (!is_search && user_perm.includes("write"))
       return next()
-    
+
     console.error(req.dn.toString() + "doesn't have the correct write access")
     return next(new ldap.InsufficientAccessRightsError())
   }).catch(err => {
@@ -173,7 +173,7 @@ server.bind(suffix, (req, res, next) => {
     ssha.checkssha(req.credentials, hash, (err, v) => {
       if (err) return next(new ldap.OperationsError(err.toString()))
       if (!v) return next(new ldap.InvalidCredentialsError())
-    
+
       res.end()
       console.log("Successful bind for "+req.dn.toString())
       return next()
@@ -198,7 +198,7 @@ server.search(suffix, authorize, (req, res, next) => {
       parse_consul_res(data)
         .filter(o => req.filter.matches(decorate_with_memberof(o, membership).attributes))
         .forEach(o => res.send(o))
-  
+
       console.log("search - dn=%s - filter=%s - bind=%s", req.dn, req.filter, req.connection.ldap.bindDN)
       res.end();
     })
@@ -215,7 +215,7 @@ server.add(suffix, authorize, (req, res, next) => {
     add_elements(consul_dn, attributes_to_add).then(setres => {
       res.end()
       console.log("add - dn=%s - bind=%s", req.dn, req.connection.ldap.bindDN)
-      return next() 
+      return next()
     }).catch(seterr => {
       return next(new ldap.OperationsError(seterr.toString()))
     })
@@ -251,7 +251,7 @@ const init = () => new Promise((resolve, reject) => {
       return;
     }
     const type = exploded_last_entry[0]
-    const value = exploded_last_entry[1] 
+    const value = exploded_last_entry[1]
     base_attributes[type] = value
 
     add_elements(dn_to_consul(suffix_dn), base_attributes).then(() => {
